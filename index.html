@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator & Manajemen Absensi Relawan SPPG MBG - BGN</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                        },
+                        bgn: {
+                            blue: '#1e3a8a',
+                            gold: '#d97706',
+                            red: '#dc2626'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; font-size: 11pt; }
+            .card-box { border: 1px solid #ddd !important; box-shadow: none !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-lg border-b border-blue-700/30 sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-500 text-slate-900 p-2.5 rounded-xl font-bold shadow-md shadow-emerald-500/20 flex items-center justify-center">
+                    <i data-lucide="calculator" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight flex items-center gap-2">
+                        Absensi & Insentif Relawan MBG
+                        <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-2.5 py-0.5 rounded-full font-semibold">Standard BGN</span>
+                    </h1>
+                    <p class="text-xs text-slate-300">Sistem Perhitungan Gaji Relawan Per Personil Sesuai Kehadiran SPPG</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="loadSampleData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition border border-slate-700">
+                    <i data-lucide="users-round" class="w-3.5 h-3.5"></i> Isi Data Contoh
+                </button>
+                <button onclick="resetAllData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition border border-slate-700">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                </button>
+                <button onclick="window.print()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white flex items-center gap-1.5 transition shadow-sm">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak Rekap
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Header Layar Cetak Print Only -->
+    <div class="print-only p-4 mb-4 border-b-2 border-slate-900">
+        <div class="text-center space-y-1">
+            <h1 class="text-xl font-bold uppercase">REKAPITULASI KEHADIRAN & HONORARIUM RELAWAN SPPG</h1>
+            <p class="text-xs">Program Makan Bergizi Gratis (MBG) - Badan Gizi Nasional</p>
+            <p class="text-xs italic" id="printHeaderInfo">Periode Operasional: -</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
+
+        <!-- Info & Parameter Operasional -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
+            <!-- Parameter SPPG Form -->
+            <div class="lg:col-span-8 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 card-box">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-indigo-600"></i>
+                        <h2 class="font-bold text-slate-800 text-base">Parameter Operasional SPPG BGN</h2>
+                    </div>
+                    <span class="text-xs font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">Batas Operasional: Rp 3.000 / Porsi</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Target Porsi / Hari</label>
+                        <div class="relative">
+                            <input type="number" id="porsiInput" min="100" max="10000" step="50" value="3000" oninput="calculateAll()"
+                                class="w-full bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl py-2 px-3 font-bold text-slate-900 text-sm">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400">Porsi</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Hari Kerja Efektif / Bulan</label>
+                        <div class="relative">
+                            <input type="number" id="hariKerjaInput" min="1" max="31" value="22" oninput="renderPersonTable(); calculateAll()"
+                                class="w-full bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl py-2 px-3 font-bold text-slate-900 text-sm">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400">Hari</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Bulan & Tahun Periode</label>
+                        <input type="month" id="periodeInput" value="2026-11" onchange="calculateAll()"
+                            class="w-full bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl py-2 px-3 font-bold text-slate-900 text-sm">
+                    </div>
+                </div>
+
+                <!-- Rec Badges -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between text-xs gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500">Rekomendasi Relawan BGN:</span>
+                        <span id="recRelawanText" class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">47 Orang</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500">Maksimal Pagu Operasional Bulan Ini:</span>
+                        <span id="paguBgnBulanBanner" class="font-extrabold text-emerald-700">Rp 198.000.000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ringkasan Anggaran Quick Cards -->
+            <div class="lg:col-span-4 bg-slate-900 text-white border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between card-box">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i> Guardrail Operasional
+                        </span>
+                        <span id="badgeStatus" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">AMAN</span>
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-slate-400">Total Pengeluaran Insentif & Operasional:</div>
+                        <div class="text-2xl font-extrabold text-white mt-0.5" id="totalPengeluaranBanner">Rp 0</div>
+                        <div class="text-[11px] text-slate-300 mt-1 flex justify-between">
+                            <span>Realisasi per Porsi:</span>
+                            <span id="costPerPorsiTotal" class="font-bold text-amber-300">Rp 0 / porsi</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[11px] text-slate-300">
+                            <span>Penggunaan Pagu:</span>
+                            <span id="persenPaguText" class="font-bold">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                            <div id="progressBarPagu" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-300">
+                    <span>Sisa Pagu Operasional:</span>
+                    <span id="sisaPaguText" class="font-bold text-emerald-400 text-sm">Rp 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Absensi Harian & Perhitungan Insentif Relawan per Personil -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 card-box">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Daftar Presensi Absensi & Gaji Relawan (Per Orang)</h3>
+                        <p class="text-xs text-slate-500">Hitung otomatis insentif harian berdasarkan hari hadir masuk kerja relawan</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 no-print">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="searchRelawan" onkeyup="filterRelawan()" placeholder="Cari relawan / peran..."
+                            class="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500">
+                    </div>
+                    <button onclick="addRelawanPerson()" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Tambah Personil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabel Detail Absensi Relawan -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 font-bold text-slate-700 uppercase border-b border-slate-200">
+                            <th class="py-3 px-3 w-8 text-center">No</th>
+                            <th class="py-3 px-3">Nama Relawan</th>
+                            <th class="py-3 px-3">Peran / Tugas SPPG</th>
+                            <th class="py-3 px-3 text-center">Skema Insentif</th>
+                            <th class="py-3 px-3 text-right">Tarif / Hari (Rp)</th>
+                            <th class="py-3 px-3 text-center w-28">Hari Hadir</th>
+                            <th class="py-3 px-3 text-right">Total Insentif (Rp)</th>
+                            <th class="py-3 px-3 text-center no-print">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="relawanPersonTbody" class="divide-y divide-slate-100 text-slate-800">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                    <tfoot class="bg-slate-50 font-bold border-t border-slate-200 text-xs">
+                        <tr>
+                            <td colspan="5" class="py-3 px-3 text-right text-slate-600 uppercase">Total Ringkasan Honor Relawan:</td>
+                            <td id="totalHariHadirSummary" class="py-3 px-3 text-center text-indigo-700">0 Hari</td>
+                            <td id="totalHonorSummary" class="py-3 px-3 text-right text-emerald-700 text-sm font-extrabold">Rp 0</td>
+                            <td class="no-print"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Input Biaya Operasional Non-Gaji -->
+            <div class="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4 no-print">
+                <div class="bg-amber-50/60 border border-amber-200 p-3.5 rounded-xl">
+                    <label class="block text-xs font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-600"></i>
+                        Biaya Operasional Utilitas Non-Gaji (Bulan Ini)
+                    </label>
+                    <p class="text-[11px] text-amber-700 mb-2">Tagihan listrik, air, bahan bakar sanitasi, pemeliharaan alat dapur</p>
+                    <div class="relative max-w-xs">
+                        <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">Rp</span>
+                        <input type="number" id="operasionalLainInput" step="100000" value="5000000" oninput="calculateAll()"
+                            class="w-full bg-white border border-slate-300 focus:border-amber-500 rounded-lg py-1.5 pl-9 pr-3 text-slate-900 font-bold text-xs">
+                    </div>
+                </div>
+
+                <div class="bg-blue-50/60 border border-blue-200 p-3.5 rounded-xl text-xs space-y-1.5">
+                    <div class="font-bold text-blue-900 flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-600"></i>
+                        Saran Ketentuan Absensi Relawan MBG
+                    </div>
+                    <ul class="list-disc list-inside text-blue-800 space-y-1 text-[11px]">
+                        <li>Insentif relawan dihitung harian proporsional berdasarkan jumlah kehadiran nyata.</li>
+                        <li>Absensi wajib direkap setiap hari operasi layanan sebelum makanan didistribusikan.</li>
+                        <li>Honorarium diserahterimakan akhir bulan disertai penandatanganan rekap absensi.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Pie Chart & Edukasi BGN -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 no-print">
+            <div class="md:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3 card-box">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-600"></i>
+                    Proporsi Biaya Operasional SPPG
+                </h3>
+                <div class="relative h-52 flex items-center justify-center">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabel Referensi Standard BGN -->
+            <div class="md:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3 card-box">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <i data-lucide="book-open" class="w-4 h-4 text-indigo-600"></i>
+                    Acuan Standar Relawan SPPG Badan Gizi Nasional (BGN)
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="py-2 px-2">Kapasitas Porsi</th>
+                                <th class="py-2 px-2 text-center">Standar Relawan BGN</th>
+                                <th class="py-2 px-2">Rekomendasi Struktur Peran</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-[11px]">
+                            <tr>
+                                <td class="py-1.5 px-2 font-bold text-emerald-800">≥ 3.000 Porsi</td>
+                                <td class="py-1.5 px-2 text-center font-bold">47 Orang</td>
+                                <td class="py-1.5 px-2 text-slate-600">Kepala SPPG(1), Gizi(1), Masak(14), Porsi(15), Cuci(10), Logistik(6)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5 px-2 font-semibold">2.500 – 2.999 Porsi</td>
+                                <td class="py-1.5 px-2 text-center font-bold">42 Orang</td>
+                                <td class="py-1.5 px-2 text-slate-600">Kepala SPPG(1), Gizi(1), Masak(12), Porsi(14), Cuci(9), Logistik(5)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5 px-2 font-semibold">2.000 – 2.499 Porsi</td>
+                                <td class="py-1.5 px-2 text-center font-bold">33 Orang</td>
+                                <td class="py-1.5 px-2 text-slate-600">Kepala SPPG(1), Gizi(1), Masak(10), Porsi(11), Cuci(6), Logistik(4)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5 px-2 font-semibold">1.500 – 1.999 Porsi</td>
+                                <td class="py-1.5 px-2 text-center font-bold">24 Orang</td>
+                                <td class="py-1.5 px-2 text-slate-600">Kepala SPPG(1), Gizi(1), Masak(7), Porsi(8), Cuci(4), Logistik(3)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5 px-2 font-semibold">&lt; 1.500 Porsi</td>
+                                <td class="py-1.5 px-2 text-center font-bold">10 – 15 Orang</td>
+                                <td class="py-1.5 px-2 text-slate-600">Skala Fleksibel / Rintisan SPPG Daerah Pelosok</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Cetak Slip Gaji Individu -->
+    <div id="slipModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <button onclick="closeSlipModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="text-center border-b border-slate-100 pb-3">
+                <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-base">Slip Insentif Relawan SPPG MBG</h3>
+                <p class="text-xs text-slate-500">Badan Gizi Nasional (BGN)</p>
+            </div>
+
+            <div id="slipContent" class="space-y-3 text-xs">
+                <!-- Content Injected dynamically -->
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex gap-2">
+                <button onclick="printSingleSlip()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Cetak Slip Ini
+                </button>
+                <button onclick="closeSlipModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-xl text-xs">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-5 border-t border-slate-800 mt-8 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+            <p class="font-medium text-slate-300">Sistem Perhitungan Honor & Absensi Relawan SPPG MBG Badan Gizi Nasional</p>
+            <p class="text-slate-500">Kalkulator Absensi Harian & Guardrail Pagu Operasional 2026</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Options Peran SPPG Standard
+        const ROLES_OPTIONS = [
+            "Kepala SPPG",
+            "Ahli Gizi / Nutrisionis",
+            "Tenaga Masak / Koki",
+            "Persiapan Bahan Pangan",
+            "Pemorsian & Packing",
+            "Cuci Ompreng & Sanitasi",
+            "Logistik & Pengantar",
+            "Kebersihan & Keamanan"
+        ];
+
+        // Sample Data Relawan Per Personil
+        const initialPersons = [
+            { id: 1, name: "Ahmad Subandi", role: "Kepala SPPG", type: "daily", rate: 150000, hadir: 22 },
+            { id: 2, name: "Siti Rahmawati, S.Gz", role: "Ahli Gizi / Nutrisionis", type: "daily", rate: 140000, hadir: 22 },
+            { id: 3, name: "Budi Santoso", role: "Tenaga Masak / Koki", type: "daily", rate: 100000, hadir: 20 },
+            { id: 4, name: "Dewi Lestari", role: "Tenaga Masak / Koki", type: "daily", rate: 100000, hadir: 21 },
+            { id: 5, name: "Eko Prasetyo", role: "Persiapan Bahan Pangan", type: "daily", rate: 90000, hadir: 22 },
+            { id: 6, name: "Fitri Handayani", role: "Pemorsian & Packing", type: "daily", rate: 85000, hadir: 22 },
+            { id: 7, name: "Gita Gutawa", role: "Pemorsian & Packing", type: "daily", rate: 85000, hadir: 19 },
+            { id: 8, name: "Hardi Suprianto", role: "Cuci Ompreng & Sanitasi", type: "daily", rate: 80000, hadir: 22 },
+            { id: 9, name: "Indah Permata", role: "Cuci Ompreng & Sanitasi", type: "daily", rate: 80000, hadir: 20 },
+            { id: 10, name: "Joko Susilo", role: "Logistik & Pengantar", type: "daily", rate: 95000, hadir: 22 }
+        ];
+
+        // Baca penyimpanan dengan aman agar data lokal yang rusak tidak membuat aplikasi berhenti.
+        function loadSavedPersons() {
+            try {
+                const saved = localStorage.getItem('mbg_relawan_persons');
+                if (!saved) return JSON.parse(JSON.stringify(initialPersons));
+                const parsed = JSON.parse(saved);
+                if (!Array.isArray(parsed)) return JSON.parse(JSON.stringify(initialPersons));
+                return parsed.map((p, i) => ({
+                    id: Number(p.id) || (Date.now() + i),
+                    name: String(p.name ?? 'Relawan'),
+                    role: String(p.role ?? 'Tenaga Masak / Koki'),
+                    type: 'daily',
+                    rate: Math.max(0, Number(p.rate) || 0),
+                    hadir: Math.max(0, Number(p.hadir) || 0)
+                }));
+            } catch (error) {
+                console.warn('Data tersimpan tidak dapat dibaca:', error);
+                return JSON.parse(JSON.stringify(initialPersons));
+            }
+        }
+
+        let relawanPersons = loadSavedPersons();
+        let chartInstance = null;
+        let selectedSlipId = null;
+
+        // Init App
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.lucide) lucide.createIcons();
+            renderPersonTable();
+            initChart();
+            calculateAll();
+        });
+
+        // Render Table Body Personil
+        function renderPersonTable() {
+            const tbody = document.getElementById('relawanPersonTbody');
+            tbody.innerHTML = '';
+
+            const hariEfektif = parseInt(document.getElementById('hariKerjaInput').value) || 22;
+
+            relawanPersons.forEach((person, index) => {
+                const totalGaji = person.hadir * person.rate;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.setAttribute('data-search', `${person.name.toLowerCase()} ${person.role.toLowerCase()}`);
+
+                let roleOptionsHtml = ROLES_OPTIONS.map(r => 
+                    `<option value="${r}" ${person.role === r ? 'selected' : ''}>${r}</option>`
+                ).join('');
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center text-slate-400 font-medium">${index + 1}</td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" value="${escapeHtml(person.name)}" onchange="updatePerson(${person.id}, 'name', this.value)"
+                            class="w-full bg-transparent font-semibold border-b border-transparent hover:border-slate-300 focus:border-emerald-500 outline-none">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <select onchange="updatePerson(${person.id}, 'role', this.value)"
+                            class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 outline-none text-xs">
+                            ${roleOptionsHtml}
+                        </select>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Harian</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        <input type="number" step="5000" value="${person.rate}" onchange="updatePerson(${person.id}, 'rate', this.value)"
+                            class="w-24 bg-slate-50 border border-slate-200 rounded px-2 py-1 text-right font-semibold outline-none focus:border-emerald-500">
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <input type="number" min="0" max="${hariEfektif}" value="${person.hadir}" onchange="updatePerson(${person.id}, 'hadir', this.value)"
+                                class="w-14 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded px-1.5 py-1 text-center font-bold outline-none focus:ring-1 focus:ring-emerald-500">
+                            <span class="text-slate-400 font-normal">/ ${hariEfektif}</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-3 text-right font-extrabold text-slate-800">
+                        ${formatRupiah(totalGaji)}
+                    </td>
+                    <td class="py-2.5 px-3 text-center no-print">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="openSlipModal(${person.id})" title="Cetak Slip Gaji" class="p-1 text-slate-400 hover:text-indigo-600 transition">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deletePerson(${person.id})" title="Hapus Personil" class="p-1 text-slate-400 hover:text-red-600 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (window.lucide) lucide.createIcons();
+            saveToStorage();
+        }
+
+        // Add Person Row
+        function addRelawanPerson() {
+            const hariEfektif = parseInt(document.getElementById('hariKerjaInput').value) || 22;
+            const newId = Date.now();
+            relawanPersons.push({
+                id: newId,
+                name: "Relawan Baru",
+                role: "Tenaga Masak / Koki",
+                type: "daily",
+                rate: 90000,
+                hadir: hariEfektif
+            });
+            renderPersonTable();
+            calculateAll();
+        }
+
+        // Delete Person
+        function deletePerson(id) {
+            if(confirm("Apakah Anda yakin ingin menghapus relawan ini?")) {
+                relawanPersons = relawanPersons.filter(p => p.id !== id);
+                renderPersonTable();
+                calculateAll();
+            }
+        }
+
+        // Update Person Data
+        function updatePerson(id, field, value) {
+            const person = relawanPersons.find(p => String(p.id) === String(id));
+            if(person) {
+                if(field === 'rate' || field === 'hadir') {
+                    let numericValue = Math.max(0, parseInt(value, 10) || 0);
+                    if (field === 'hadir') {
+                        const maxHari = Math.max(0, parseInt(document.getElementById('hariKerjaInput').value, 10) || 0);
+                        numericValue = Math.min(numericValue, maxHari);
+                    }
+                    person[field] = numericValue;
+                } else {
+                    person[field] = value;
+                }
+                renderPersonTable();
+                calculateAll();
+            }
+        }
+
+        // Calculation Engine
+        function calculateAll() {
+            const porsiPerHari = parseInt(document.getElementById('porsiInput').value) || 3000;
+            const hariKerja = parseInt(document.getElementById('hariKerjaInput').value) || 22;
+            const operasionalLain = Math.max(0, parseFloat(document.getElementById('operasionalLainInput').value) || 0);
+            relawanPersons.forEach(person => {
+                person.hadir = Math.min(Math.max(0, Number(person.hadir) || 0), Math.max(0, hariKerja));
+                person.rate = Math.max(0, Number(person.rate) || 0);
+            });
+            const periodeStr = document.getElementById('periodeInput').value;
+
+            // Update Header info Print
+            const printInfo = document.getElementById('printHeaderInfo');
+            if(printInfo) {
+                printInfo.innerText = `Periode: ${periodeStr} | Kapasitas: ${porsiPerHari.toLocaleString('id-ID')} Porsi/Hari | Target Hari Kerja: ${hariKerja} Hari`;
+            }
+
+            // 1. Rekomendasi BGN Relawan Count
+            let recRelawan = 10;
+            if (porsiPerHari >= 3000) recRelawan = 47;
+            else if (porsiPerHari >= 2500) recRelawan = 42;
+            else if (porsiPerHari >= 2000) recRelawan = 33;
+            else if (porsiPerHari >= 1500) recRelawan = 24;
+            else if (porsiPerHari >= 1000) recRelawan = 15;
+            else recRelawan = Math.max(8, Math.round((porsiPerHari / 3000) * 47));
+
+            document.getElementById('recRelawanText').innerText = `${recRelawan} Orang`;
+
+            // 2. Total Honorarium Relawan dari Absensi Realisasi
+            let totalHariHadir = 0;
+            let totalHonorRelawan = 0;
+
+            relawanPersons.forEach(person => {
+                totalHariHadir += (person.hadir || 0);
+                totalHonorRelawan += (person.hadir * person.rate);
+            });
+
+            document.getElementById('totalHariHadirSummary').innerText = `${totalHariHadir} Hari Hadir`;
+            document.getElementById('totalHonorSummary').innerText = formatRupiah(totalHonorRelawan);
+
+            // 3. Calculation Pagu Operasional BGN (Rp 3.000 / porsi / hari)
+            const paguBgnPerHari = porsiPerHari * 3000;
+            const maxPaguBgnBulan = paguBgnPerHari * hariKerja;
+
+            document.getElementById('paguBgnBulanBanner').innerText = formatRupiah(maxPaguBgnBulan);
+
+            // 4. Total Realisasi Pengeluaran SPPG
+            const totalPengeluaranBulan = totalHonorRelawan + operasionalLain;
+            document.getElementById('totalPengeluaranBanner').innerText = formatRupiah(totalPengeluaranBulan);
+
+            // 5. Cost Realisasi per Porsi
+            const totalPorsiPerBulan = porsiPerHari * hariKerja;
+            const realisasiCostPerPorsi = totalPorsiPerBulan > 0 ? (totalPengeluaranBulan / totalPorsiPerBulan) : 0;
+            
+            document.getElementById('costPerPorsiTotal').innerText = `${formatRupiah(Math.round(realisasiCostPerPorsi))} / porsi`;
+
+            // 6. Guardrail Status & Sisa Pagu
+            const sisaPagu = maxPaguBgnBulan - totalPengeluaranBulan;
+            const persenPenggunaan = maxPaguBgnBulan > 0 ? ((totalPengeluaranBulan / maxPaguBgnBulan) * 100) : 0;
+
+            document.getElementById('persenPaguText').innerText = `${persenPenggunaan.toFixed(1)}%`;
+            document.getElementById('progressBarPagu').style.width = `${Math.min(100, persenPenggunaan)}%`;
+
+            const sisaPaguTextEl = document.getElementById('sisaPaguText');
+            const badgeStatusEl = document.getElementById('badgeStatus');
+
+            if (sisaPagu >= 0) {
+                sisaPaguTextEl.innerText = formatRupiah(sisaPagu);
+                sisaPaguTextEl.className = "font-bold text-emerald-400 text-sm";
+
+                badgeStatusEl.innerText = "EFISIEN & AMAN";
+                badgeStatusEl.className = "text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                document.getElementById('progressBarPagu').className = "h-full bg-emerald-500 transition-all duration-300";
+            } else {
+                sisaPaguTextEl.innerText = `Defisit (${formatRupiah(Math.abs(sisaPagu))})`;
+                sisaPaguTextEl.className = "font-bold text-rose-400 text-sm";
+
+                badgeStatusEl.innerText = "OVER BUDGET";
+                badgeStatusEl.className = "text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                document.getElementById('progressBarPagu').className = "h-full bg-rose-500 transition-all duration-300";
+            }
+
+            // 7. Update Chart
+            updateChart(totalHonorRelawan, operasionalLain, Math.max(0, sisaPagu));
+        }
+
+        // Filter Table Relawan
+        function filterRelawan() {
+            const query = document.getElementById('searchRelawan').value.toLowerCase();
+            const rows = document.querySelectorAll('#relawanPersonTbody tr');
+            rows.forEach(row => {
+                const text = row.getAttribute('data-search') || '';
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // Open Modal Slip Gaji
+        function openSlipModal(id) {
+            selectedSlipId = id;
+            const person = relawanPersons.find(p => String(p.id) === String(id));
+            if(!person) return;
+
+            const hariKerja = parseInt(document.getElementById('hariKerjaInput').value) || 22;
+            const totalHonor = person.hadir * person.rate;
+            const periodeStr = document.getElementById('periodeInput').value;
+
+            const slipHtml = `
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between border-b border-slate-200 pb-2">
+                        <span class="text-slate-500">Nama Relawan:</span>
+                        <span class="font-bold text-slate-800">${escapeHtml(person.name)}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-200 pb-2">
+                        <span class="text-slate-500">Peran / Tugas SPPG:</span>
+                        <span class="font-semibold text-slate-700">${escapeHtml(person.role)}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-200 pb-2">
+                        <span class="text-slate-500">Periode Layanan:</span>
+                        <span class="font-semibold text-slate-700">${periodeStr}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-200 pb-2">
+                        <span class="text-slate-500">Tarif Insentif Harian:</span>
+                        <span class="font-semibold text-slate-700">${formatRupiah(person.rate)} / Hari</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-200 pb-2">
+                        <span class="text-slate-500">Total Absensi Hadir:</span>
+                        <span class="font-bold text-indigo-700">${person.hadir} Hari Hadir (dari ${hariKerja} Hari)</span>
+                    </div>
+                    <div class="flex justify-between pt-1 text-sm font-bold text-emerald-800">
+                        <span>Total Take-Home Pay:</span>
+                        <span>${formatRupiah(totalHonor)}</span>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 italic text-center">
+                    *Tanda terima elektronik sah pembayaran honorarium relawan Satuan Pelayanan Pemenuhan Gizi (SPPG) MBG.
+                </div>
+            `;
+
+            document.getElementById('slipContent').innerHTML = slipHtml;
+            document.getElementById('slipModal').classList.remove('hidden');
+        }
+
+        function closeSlipModal() {
+            document.getElementById('slipModal').classList.add('hidden');
+        }
+
+        function printSingleSlip() {
+            window.print();
+        }
+
+        // Chart Initialization
+        function initChart() {
+            const canvas = document.getElementById('costChart');
+            if (!canvas || !window.Chart) {
+                chartInstance = null;
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Honorarium Relawan', 'Operasional & Utilitas', 'Sisa Pagu BGN'],
+                    datasets: [{
+                        data: [0, 0, 100],
+                        backgroundColor: ['#10b981', '#f59e0b', '#cbd5e1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        function updateChart(honor, util, sisa) {
+            if (chartInstance) {
+                chartInstance.data.datasets[0].data = [honor, util, sisa];
+                chartInstance.update();
+            }
+        }
+
+        // Load Sample Data
+        function loadSampleData() {
+            relawanPersons = JSON.parse(JSON.stringify(initialPersons));
+            renderPersonTable();
+            calculateAll();
+        }
+
+        // Reset Data
+        function resetAllData() {
+            if(confirm("Reset seluruh data relawan dan absensi ke kondisi awal?")) {
+                localStorage.removeItem('mbg_relawan_persons');
+                relawanPersons = JSON.parse(JSON.stringify(initialPersons));
+                renderPersonTable();
+                calculateAll();
+            }
+        }
+
+        // Save Storage
+        function saveToStorage() {
+            try {
+                localStorage.setItem('mbg_relawan_persons', JSON.stringify(relawanPersons));
+            } catch (error) {
+                console.warn('Penyimpanan lokal gagal:', error);
+            }
+        }
+
+        // Helper Format Rupiah
+        function formatRupiah(num) {
+            return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
